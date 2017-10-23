@@ -16,14 +16,16 @@ import me.hudsonmd.courseregistration.protocols.StudentProtocol.AddFailed;
 import me.hudsonmd.courseregistration.protocols.StudentProtocol.AddSucceeded;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Course extends AbstractActorWithStash {
     private LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
 
-    private final String         name;
-    private       List<ActorRef> students;
+    private final String        name;
+    private       Set<ActorRef> students;
 
 
     public Course(String name) {this.name = name;}
@@ -34,7 +36,7 @@ public class Course extends AbstractActorWithStash {
 
     @Override
     public void preStart() throws Exception {
-        students = new ArrayList<>();
+        students = new HashSet<>();
     }
 
     @Override
