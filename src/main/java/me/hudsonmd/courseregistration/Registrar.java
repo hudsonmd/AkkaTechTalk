@@ -103,7 +103,7 @@ public class Registrar extends AbstractActorWithStash {
         if (courseName.matches("CS\\d{3}[A-Z]{0,1} [A-z ]*")) {
             return new ApprovedCourse((int) (Math.random() * 4 + 4));
         }
-        return new RejectedCourse("Invalid course courseName");
+        return new RejectedCourse("Invalid course "+courseName);
     }
 
     private Receive finalizedSemester() {
