@@ -11,14 +11,6 @@ public class StudentProtocol {
         }
     }
 
-    public static class DropCourse {
-        public final String courseName;
-
-        public DropCourse(final String courseName) {
-            this.courseName = courseName;
-        }
-    }
-
     public static class AddFailed {
         public final String courseName;
 

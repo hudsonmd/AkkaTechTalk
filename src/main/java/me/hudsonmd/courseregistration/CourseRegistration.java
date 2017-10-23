@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory;
 import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.PrintEverything;
 import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.ProposeCourse;
 import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.RegisterStudent;
-import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.StartRegistration;
+import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.OpenSemesterForRegistration;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Arrays;
@@ -40,7 +40,7 @@ public class CourseRegistration {
 
     public static void main(String[] args) {
         Config      config = ConfigFactory.load();
-        ActorSystem system = ActorSystem.create("CourseRegistration", config);
+        ActorSystem system = ActorSystem.create("ClusterSystem", config);
 
         ActorRef registrar = system.actorOf(Registrar.props(), "registrar");
 
@@ -59,7 +59,7 @@ public class CourseRegistration {
         system.scheduler()
               .scheduleOnce(FiniteDuration.create(5, TimeUnit.SECONDS),
                             registrar,
-                            new StartRegistration(),
+                            new OpenSemesterForRegistration(),
                             system.dispatcher(),
                             ActorRef.noSender()
                            );

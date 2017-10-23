@@ -9,7 +9,6 @@ import akka.japi.pf.ReceiveBuilder;
 import me.hudsonmd.courseregistration.exceptions.RejectedCourseException;
 import me.hudsonmd.courseregistration.protocols.CourseProtocol.AddStudent;
 import me.hudsonmd.courseregistration.protocols.CourseProtocol.ApprovedCourse;
-import me.hudsonmd.courseregistration.protocols.CourseProtocol.DropStudent;
 import me.hudsonmd.courseregistration.protocols.CourseProtocol.RejectedCourse;
 import me.hudsonmd.courseregistration.protocols.OutputWorkerProtocol.RequestPrint;
 import me.hudsonmd.courseregistration.protocols.OutputWorkerProtocol.RespondPrint;
@@ -71,10 +70,8 @@ public class Course extends AbstractActorWithStash {
                     }
                     if (students.size() >= capacity) {
                         getContext().become(atCapacity());
-                        getSender().tell(new AddFailed(name), getSelf());
                     }
-                }).match(DropStudent.class, (DropStudent message) -> dropHandler(message, students))
-                .match(RequestPrint.class, (RequestPrint message) -> {
+                }).match(RequestPrint.class, (RequestPrint message) -> {
                     String output = "Course " + name + " has " + (capacity - students.size()) + " spots open";
                     getSender().tell(new RespondPrint(output), getSelf());
                 }).build();
@@ -88,20 +85,9 @@ public class Course extends AbstractActorWithStash {
                 .match(AddStudent.class, (AddStudent message) -> {
                     log.info(name + " is full and cannot add student " + message.student);
                     getSender().tell(new AddFailed(name), self());
-                }).match(DropStudent.class, (DropStudent message) -> {
-                    dropHandler(message, students);
-                    getContext().become(openForRegistration(students.size() + 1));
                 }).match(RequestPrint.class, (RequestPrint message) -> {
-                    String output = "Course "+name+" has 0 spots open";
+                    String output = "Course " + name + " has 0 spots open";
                     getSender().tell(new RespondPrint(output), getSelf());
                 }).build();
     }
-
-    private void dropHandler(final DropStudent message, List students) {
-        log.info(name + " is attempting to drop " + message.student);
-        if (students.contains(message.student)) {
-            students.remove(message.student);
-        }
-    }
-
 }

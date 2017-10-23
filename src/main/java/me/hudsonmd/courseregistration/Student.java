@@ -16,8 +16,8 @@ import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.ResponseCourse
 import me.hudsonmd.courseregistration.protocols.StudentProtocol.AddCourse;
 import me.hudsonmd.courseregistration.protocols.StudentProtocol.AddFailed;
 import me.hudsonmd.courseregistration.protocols.StudentProtocol.AddSucceeded;
-import me.hudsonmd.courseregistration.protocols.StudentProtocol.DropCourse;
 import me.hudsonmd.courseregistration.protocols.StudentProtocol.StartRegistering;
+import scala.concurrent.Future;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.HashSet;
@@ -45,19 +45,19 @@ public class Student extends AbstractActorWithStash {
         return ReceiveBuilder
                 .create()
                 .match(StartRegistering.class, (StartRegistering message) -> {
-                    log.info(name+" is requesting the course list");
+                    log.info(name + " is requesting the course list");
                     Patterns.pipe(Patterns.ask(getContext().getParent(),
-                                 new RequestCourseList(),
-                                 Timeout.durationToTimeout(FiniteDuration.create(2, TimeUnit.SECONDS))),
+                                               new RequestCourseList(),
+                                               Timeout.durationToTimeout(FiniteDuration.create(2, TimeUnit.SECONDS))),
                                   getContext().dispatcher()).to(getSelf());
                 })
                 .match(ResponseCourseList.class, (ResponseCourseList message) -> {
-                    log.info(name+" got the course list");
+                    log.info(name + " got the course list");
                     ActorRef self = getSelf();
                     message.courses.entrySet()
                                    .parallelStream()
                                    .forEach((Entry<String, ActorRef> course) -> {
-                                       if (Math.random()*10<8) {
+                                       if (Math.random() * 10 < 8) {
                                            getSelf().tell(new AddCourse(course.getKey()), self);
                                        }
                                    });
@@ -69,39 +69,43 @@ public class Student extends AbstractActorWithStash {
         unstashAll();
         Set<String> myCourses = new HashSet<>();
 
-        log.info(name+" is beginning to register");
+        log.info(name + " is beginning to register");
 
         return ReceiveBuilder
                 .create()
                 .match(AddCourse.class, (AddCourse message) -> {
                     log.info(name + " is attempting to add class " + message.name);
                     if (courseMap.containsKey(message.name)) {
-                        Patterns.pipe(Patterns.ask(courseMap.get(message.name),
-                                                   new AddStudent(getSelf()),
-                                                   Timeout.durationToTimeout(FiniteDuration.create(2, TimeUnit.SECONDS))
-                                                  ),
-                                      getContext().dispatcher())
+                        ActorRef courseToAdd = courseMap.get(message.name);
+
+                        Future asked = Patterns.ask(courseToAdd,
+                                                    //Message it's sending
+                                                    new AddStudent(getSelf()),
+                                                    Timeout.durationToTimeout(FiniteDuration.create(2, TimeUnit.SECONDS))
+                                                   );
+
+                        Patterns.pipe(asked,getContext().dispatcher())
                                 .to(getSelf());
 
                     }
                 }).match(AddSucceeded.class, (AddSucceeded message) -> {
-                    log.info(name+" successfully joined "+message.courseName);
+                    log.info(name + " successfully joined " + message.courseName);
                     myCourses.add(message.courseName);
                 })
                 .match(AddFailed.class, (AddFailed message) -> {
                     log.warning(name + " could not add course " + message.courseName);
-                }).match(DropCourse.class, (DropCourse message) -> {
-                    log.info(name + " is attempting to drop class " + message.courseName);
-                    if (myCourses.contains(message.courseName)) {
-                        myCourses.remove(message.courseName);
-                    }
                 }).match(RequestPrint.class, (RequestPrint message) -> {
-                    StringBuilder output = new StringBuilder();
-                    output.append(name + " had the courses : ");
-                    for(String course : myCourses) {
-                        output.append("["+course+"]");
-                    }
-                    getSender().tell(new RespondPrint(output.toString()), getSelf());
+                    String output = printString(myCourses);
+                    getSender().tell(new RespondPrint(output), getSelf());
                 }).build();
+    }
+
+    private String printString(Set<String> myCourses) {
+        StringBuilder output = new StringBuilder();
+        output.append(name + " had the courses : ");
+        for (String course : myCourses) {
+            output.append("[" + course + "]");
+        }
+        return output.toString();
     }
 }

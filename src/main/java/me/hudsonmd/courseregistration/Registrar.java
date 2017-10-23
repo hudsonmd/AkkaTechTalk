@@ -19,7 +19,7 @@ import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.ProposeCourse;
 import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.RegisterStudent;
 import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.RequestCourseList;
 import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.ResponseCourseList;
-import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.StartRegistration;
+import me.hudsonmd.courseregistration.protocols.RegistrarProtocol.OpenSemesterForRegistration;
 import me.hudsonmd.courseregistration.protocols.StudentProtocol.StartRegistering;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -69,15 +69,16 @@ public class Registrar extends AbstractActorWithStash {
                 .create()
                 .match(RegisterStudent.class, (RegisterStudent message) -> {
                     log.info(("Registering student " + message.name));
-                    students.put(message.name, getContext().actorOf(Student.props(message.name),
-                                                                    message.name.replace(" ", "_")));
+                    String actorName = message.name.replace(" ", "_");
+                    ActorRef registeredStudent = getContext().actorOf(Student.props(message.name), actorName);
+                    students.put(message.name, registeredStudent);
                 })
                 .match(ProposeCourse.class, (ProposeCourse message) -> {
                     log.info("Course " + message.name + " proposed");
-                    ActorRef proposedCourse = getContext().actorOf(Course.props(message.name),
-                                                                   message.name.replace(" ", "_"));
+                    String actorName = message.name.replace(" ", "_");
+                    ActorRef proposedCourse = getContext().actorOf(Course.props(message.name), actorName);
                     courses.put(message.name, proposedCourse);
-                }).match(StartRegistration.class, (StartRegistration message) -> {
+                }).match(OpenSemesterForRegistration.class, (OpenSemesterForRegistration message) -> {
                     log.info("Publishing courses");
                     final ActorRef self = getSelf();
 
@@ -90,7 +91,7 @@ public class Registrar extends AbstractActorWithStash {
                     students.values()
                             .parallelStream()
                             .forEach((ActorRef student) -> {
-                                // could have alternatively used a broadcast router or published to a topic
+                                // could have alternatively used a broadcast router
                                 student.tell(new StartRegistering(), self);
                             });
 
@@ -114,9 +115,9 @@ public class Registrar extends AbstractActorWithStash {
                                  getSender().tell(new ResponseCourseList(courses), getSelf());
                              })
                              .match(PrintEverything.class, (PrintEverything message) -> {
-                                 String               jobName = "Printing registrar information";
+                                 String jobName = "Printing registrar information";
 
-                                 List<ActorRef>       actorsToPrint = new ArrayList<>();
+                                 List<ActorRef> actorsToPrint = new ArrayList<>();
                                  actorsToPrint.addAll(courses.values());
                                  actorsToPrint.addAll(students.values());
 

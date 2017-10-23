@@ -20,7 +20,7 @@ public class RegistrarProtocol {
         }
     }
 
-    public static class StartRegistration {}
+    public static class OpenSemesterForRegistration {}
 
     public static class RequestCourseList {}
 

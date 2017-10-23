@@ -29,12 +29,4 @@ public class CourseProtocol {
             this.student = student;
         }
     }
-
-    public static class DropStudent {
-        public final ActorRef student;
-
-        public DropStudent(final ActorRef student) {
-            this.student = student;
-        }
-    }
 }
